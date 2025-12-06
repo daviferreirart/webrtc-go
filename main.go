@@ -105,12 +105,25 @@ func main() {
 		defer ticker.Stop()
 		for range ticker.C {
 			stats := peer1.GetStats()
-			dataChannelStatsPeer1, ok := stats.GetDataChannelStats(dc1)
-			if !ok {
-				logrus.Errorf("Error getting data channel stats: not found")
-				return
+			for id, stat := range stats {
+				if codecStat, ok := stat.(webrtc.CodecStats); ok {
+					logrus.Infof("Codec Stat [%s]: %+v", id, codecStat)
+				}
+				if inboundRTPStat, ok := stat.(webrtc.InboundRTPStreamStats); ok {
+					logrus.Infof("Inbound RTP Stat [%s]: %+v", id, inboundRTPStat)
+				}
+				if outboundRTPStat, ok := stat.(webrtc.OutboundRTPStreamStats); ok {
+					logrus.Infof("Outbound RTP Stat [%s]: %+v", id, outboundRTPStat)
+				}
+				if dataChannelStat, ok := stat.(webrtc.DataChannelStats); ok {
+					logrus.Infof("Data Channel Stat [%s]: %+v", id, dataChannelStat)
+				}
+
+				if transportStat, ok := stat.(webrtc.TransportStats); ok {
+					logrus.Infof("Transport Stat [%s]: %+v", id, transportStat)
+				}
+
 			}
-			logrus.Infof("Peer1 Data Channel Stats:  Stats=%+v", dataChannelStatsPeer1)
 		}
 	}()
 
