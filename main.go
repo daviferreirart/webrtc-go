@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pion/webrtc/v3"
@@ -10,8 +11,7 @@ import (
 func main() {
 	logrus.SetLevel(logrus.InfoLevel)
 	logrus.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat:   time.RFC3339,
-		DisableHTMLEscape: true,
+		TimestampFormat: time.RFC3339,
 	})
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
@@ -35,16 +35,17 @@ func main() {
 		panic(err)
 	}
 
-	msgReceived := make(chan struct{})
 	dc1.OnMessage(func(msg webrtc.DataChannelMessage) {
 		logrus.Infof("Peer1 received message: %s", string(msg.Data))
-		close(msgReceived)
 	})
 
 	peer2.OnDataChannel(func(dc *webrtc.DataChannel) {
 		dc.OnOpen(func() {
 			logrus.Info("Peer2 data channel open, sending message to Peer1")
-			dc.SendText("Hello from Peer2!")
+			for i := 0; i < 1000; i++ {
+				time.Sleep(10 * time.Second)
+				dc.SendText(fmt.Sprintf("Hello from Peer2! %d", i))
+			}
 		})
 	})
 
@@ -97,5 +98,21 @@ func main() {
 	}
 
 	logrus.Info("Offer/Answer exchange complete between two peers")
+
+	// Periodically log stats from peer1
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			stats := peer1.GetStats()
+			dataChannelStatsPeer1, ok := stats.GetDataChannelStats(dc1)
+			if !ok {
+				logrus.Errorf("Error getting data channel stats: not found")
+				return
+			}
+			logrus.Infof("Peer1 Data Channel Stats:  Stats=%+v", dataChannelStatsPeer1)
+		}
+	}()
+
 	select {} // Keep the program running and communication open
 }
