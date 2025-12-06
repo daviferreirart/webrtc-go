@@ -97,5 +97,5 @@ func main() {
 	}
 
 	logrus.Info("Offer/Answer exchange complete between two peers")
-	<-msgReceived // Wait for message to be received before exiting
+	select {} // Keep the program running and communication open
 }
